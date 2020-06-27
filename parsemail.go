@@ -19,6 +19,9 @@ const contentTypeMultipartRelated = "multipart/related"
 const contentTypeTextHtml = "text/html"
 const contentTypeTextPlain = "text/plain"
 
+// Set to true to ignore unhandled mulipart portions
+var IgnoreUnhandledParts bool
+
 // Parse an email message read from io.Reader into parsemail.Email struct
 func Parse(r io.Reader) (email Email, err error) {
 	msg, err := mail.ReadMessage(r)
@@ -151,7 +154,7 @@ func parseMultipartRelated(msg io.Reader, boundary string) (textBody, htmlBody s
 				}
 
 				embeddedFiles = append(embeddedFiles, ef)
-			} else {
+			} else if !IgnoreUnhandledParts {
 				return textBody, htmlBody, embeddedFiles, fmt.Errorf("Can't process multipart/related inner mime type: %s", contentType)
 			}
 		}
@@ -208,7 +211,7 @@ func parseMultipartAlternative(msg io.Reader, boundary string) (textBody, htmlBo
 				}
 
 				embeddedFiles = append(embeddedFiles, ef)
-			} else {
+			} else if !IgnoreUnhandledParts {
 				return textBody, htmlBody, embeddedFiles, fmt.Errorf("Can't process multipart/alternative inner mime type: %s", contentType)
 			}
 		}
@@ -263,7 +266,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 			}
 
 			attachments = append(attachments, at)
-		} else {
+		} else if !IgnoreUnhandledParts {
 			return textBody, htmlBody, attachments, embeddedFiles, fmt.Errorf("Unknown multipart/mixed nested mime type: %s", contentType)
 		}
 	}
@@ -483,7 +486,7 @@ type Email struct {
 	ResentMessageID string
 
 	ContentType string
-	Content io.Reader
+	Content     io.Reader
 
 	HTMLBody string
 	TextBody string
